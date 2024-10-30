@@ -1,5 +1,4 @@
 import os
-from dotenv import load_dotenv
 from pyspark.sql import SparkSession
 from databricks.connect import DatabricksSession
 from databricks.sdk.core import Config
