@@ -1,3 +1,4 @@
+
 # .databricks/commit_outputs file is used to control whether a notebook's output should be included when committing changes to Git.
 # Outputs are included/excluded at a per notebook level, committing select outputs within a specific notebook is not feasible.
 #
@@ -12,3 +13,4 @@
 
 # Uncomment the following pattern to include output for all notebooks
 **
+ 
