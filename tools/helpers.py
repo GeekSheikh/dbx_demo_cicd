@@ -8,6 +8,7 @@ from pyspark.ml.feature import VectorAssembler, RobustScaler
 from pyspark.ml.functions import vector_to_array
 from pyspark.sql.functions import col
 
+
 class DFHelpers:
     def __init__(self, df: DataFrame):
         self.df = df
@@ -36,7 +37,11 @@ class DFHelpers:
         """
         Identify numerical fields in the DataFrame schema.
         """
-        numerical_fields = [field.name for field in self.df.schema.fields if isinstance(field.dataType, (DoubleType, IntegerType, LongType))]
+        numerical_fields = [
+            field.name
+            for field in self.df.schema.fields
+            if isinstance(field.dataType, (DoubleType, IntegerType, LongType))
+        ]
         return numerical_fields
 
     def select_numericals(self):
@@ -54,7 +59,11 @@ class DFHelpers:
         """
         self.get_field_cardinalities(omit_fields)
         numerical_fields = self.get_numerical_fields()
-        continuous_fields = [field for field in numerical_fields if self.field_cardinalities.get(field, 0) > threshold]
+        continuous_fields = [
+            field
+            for field in numerical_fields
+            if self.field_cardinalities.get(field, 0) > threshold
+        ]
         return continuous_fields
 
     def get_categorical_fields(self, threshold=20, omit_fields=None):
@@ -63,9 +72,13 @@ class DFHelpers:
         Categorical fields are those with cardinality less than or equal to the specified threshold.
         """
         self.get_field_cardinalities(omit_fields)
-        categorical_fields = [field for field, cardinality in self.field_cardinalities.items() if cardinality <= threshold]
+        categorical_fields = [
+            field
+            for field, cardinality in self.field_cardinalities.items()
+            if cardinality <= threshold
+        ]
         return categorical_fields
-    
+
     def _build_conditions(self, fields, op, threshold):
         """
         Build conditions for filtering based on the specified operation and threshold for the given fields.
@@ -73,19 +86,25 @@ class DFHelpers:
         """
         conditions = []
         for field in fields:
-            if op == 'gt':
+            if op == "gt":
                 filter_condition = F.col(field) > threshold
-            elif op == 'lt':
+            elif op == "lt":
                 filter_condition = F.col(field) < threshold
-            elif op == 'eq':
+            elif op == "eq":
                 filter_condition = F.col(field) == threshold
-            elif op == 'between':
+            elif op == "between":
                 if not isinstance(threshold, list) or len(threshold) != 2:
-                    raise ValueError("For 'between' operation, threshold should be a list of two elements [lower_bound, upper_bound].")
-                filter_condition = (F.col(field) >= threshold[0]) & (F.col(field) <= threshold[1])
+                    raise ValueError(
+                        "For 'between' operation, threshold should be a list of two elements [lower_bound, upper_bound]."
+                    )
+                filter_condition = (F.col(field) >= threshold[0]) & (
+                    F.col(field) <= threshold[1]
+                )
             else:
-                raise ValueError("Invalid operation. Use 'gt', 'lt', 'eq', or 'between'.")
-            conditions.append({'field': field, 'filter': filter_condition})
+                raise ValueError(
+                    "Invalid operation. Use 'gt', 'lt', 'eq', or 'between'."
+                )
+            conditions.append({"field": field, "filter": filter_condition})
         return conditions
 
     def fields_global_filter_op(self, fields, op, threshold):
@@ -97,12 +116,12 @@ class DFHelpers:
             raise ValueError("Fields should be a list of field names.")
 
         conditions = self._build_conditions(fields, op, threshold)
-        combined_condition = conditions[0]['filter']
+        combined_condition = conditions[0]["filter"]
         for condition in conditions[1:]:
-            combined_condition = combined_condition & condition['filter']
+            combined_condition = combined_condition & condition["filter"]
 
         return combined_condition
-    
+
     def apply_df_filters(self, df, field_ops, watch_filter=False):
         """
         Filter the DataFrame based on the specified operations and thresholds for the given fields.
@@ -111,22 +130,26 @@ class DFHelpers:
         If watch_filter is True, print the name of the field and the DataFrame count after each filter is applied.
         """
         if not isinstance(field_ops, dict):
-            raise ValueError("field_ops should be a dictionary with field names as keys and dictionaries with 'op' and 'threshold' as values.")
+            raise ValueError(
+                "field_ops should be a dictionary with field names as keys and dictionaries with 'op' and 'threshold' as values."
+            )
 
         conditions = []
         filtered_df = df
         for field, ops in field_ops.items():
-            op = ops.get('op')
-            threshold = ops.get('threshold')
+            op = ops.get("op")
+            threshold = ops.get("threshold")
             conditions.extend(self._build_conditions([field], op, threshold))
-            
+
         for condition in conditions:
-            filtered_df = filtered_df.filter(condition['filter'])
+            filtered_df = filtered_df.filter(condition["filter"])
             if watch_filter:
-                print(f"Field: {condition['field']}, Count after filter: {filtered_df.count()}")
+                print(
+                    f"Field: {condition['field']}, Count after filter: {filtered_df.count()}"
+                )
 
         return filtered_df
-    
+
     def scale_fields(self, df, fields):
         """
         Scale the specified fields in the DataFrame using RobustScaler.
@@ -135,16 +158,23 @@ class DFHelpers:
 
         for field in fields:
             assembler = VectorAssembler(inputCols=fields, outputCol="features")
-            scaler = RobustScaler(inputCol="features", outputCol="scaled_features",
-                        withScaling=True, withCentering=False,
-                        lower=0.001, upper=0.999)
+            scaler = RobustScaler(
+                inputCol="features",
+                outputCol="scaled_features",
+                withScaling=True,
+                withCentering=False,
+                lower=0.001,
+                upper=0.999,
+            )
 
             pipeline = Pipeline(stages=[assembler, scaler])
             scaled_df = pipeline.fit(df).transform(df)
 
             for i, field in enumerate(fields):
-                scaled_df = scaled_df.withColumn(field, vector_to_array(col("scaled_features")).getItem(i))
+                scaled_df = scaled_df.withColumn(
+                    field, vector_to_array(col("scaled_features")).getItem(i)
+                )
 
             scaled_df = scaled_df.drop("features", "scaled_features")
-        
+
         return scaled_df
