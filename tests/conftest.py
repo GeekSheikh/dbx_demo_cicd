@@ -3,6 +3,7 @@ Pytest configuration and fixtures for testing with PySpark.
 This file sets up the test environment to work with Databricks Connect.
 Since local Spark isn't available, we use mocking for testing.
 """
+
 import os
 import pytest
 from unittest.mock import MagicMock, Mock
