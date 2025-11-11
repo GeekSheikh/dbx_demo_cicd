@@ -14,7 +14,8 @@ if bool(os.environ.get("IS_LOCAL_ENV")):
     
     config = Config(
         profile = "field-eng",
-        cluster_id = "1030-174504-b6mprahm"
+        serverless_compute_id = "auto"
+        # cluster_id = "0616-202111-s72qsu4b"
     )
     spark = DatabricksSession.builder.sdkConfig(config).getOrCreate()
 else:
